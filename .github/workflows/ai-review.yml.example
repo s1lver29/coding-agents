@@ -1,0 +1,84 @@
+name: AI Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to review'
+        required: true
+        type: number
+
+# Prevent concurrent reviews on the same PR
+concurrency:
+  group: ai-review-${{ github.event.pull_request.number || github.event.inputs.pr_number }}
+  cancel-in-progress: true
+
+jobs:
+  ai-review:
+    name: AI Code Review
+    runs-on: ubuntu-latest
+
+    # Don't run on draft PRs
+    if: github.event.pull_request.draft == false
+
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout reviewer agent
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/coding-agents
+          path: coding-agents
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          cd coding-agents
+          pip install -e .
+
+      - name: Wait for CI checks
+        uses: fountainhead/action-wait-for-check@v1.1.0
+        id: wait-for-ci
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          checkName: 'build'  # Adjust to your main CI job name
+          ref: ${{ github.event.pull_request.head.sha }}
+          timeoutSeconds: 600
+          intervalSeconds: 30
+        continue-on-error: true  # Continue even if wait fails
+
+      - name: Run AI Reviewer
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LLM_NAME: ${{ secrets.LLM_NAME }}
+          URL_LLM: ${{ secrets.URL_LLM }}
+          APIKEY_LLM: ${{ secrets.APIKEY_LLM }}
+        run: |
+          cd coding-agents
+          PR_NUMBER=${{ github.event.pull_request.number || github.event.inputs.pr_number }}
+          python reviewer_runner.py --repo ${{ github.repository }} --pr $PR_NUMBER
+
+      - name: Post error comment on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = context.payload.pull_request?.number || ${{ github.event.inputs.pr_number || 0 }};
+            if (prNumber) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: '⚠️ AI Review failed to complete. Please check the [workflow logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}).'
+              });
+            }
