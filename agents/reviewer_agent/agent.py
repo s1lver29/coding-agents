@@ -158,6 +158,5 @@ def create_reviewer_agent() -> Agent:
             post_review_comment,
         ],
         add_history_to_context=True,
-        debug_mode=True,
         markdown=True,
     )
