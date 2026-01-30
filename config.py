@@ -6,21 +6,21 @@ load_dotenv()
 
 
 def get_github_token() -> str | None:
-    return os.getenv("GITHUB_TOKEN")
+    return os.getenv("TOKEN_GITHUB")
 
 
 def get_github_reviewer_token() -> str | None:
     """Get reviewer token, falls back to main token if not set."""
-    return os.getenv("GITHUB_TOKEN_REVIEWER")
+    return os.getenv("TOKEN_REVIEWER_GITHUB")
 
 
 def get_reviewer_username() -> str | None:
     """Get username of the reviewer to request reviews from."""
-    return os.getenv("GITHUB_REVIEWER_USERNAME")
+    return os.getenv("REVIEWER_USERNAME_GITHUB")
 
 
 def get_repo_path() -> str:
-    return os.getenv("GITHUB_REPO_PATH", "/tmp/clone_repo")
+    return os.getenv("REPO_PATH_GITHUB", "/tmp/clone_repo")
 
 
 def get_llm_info() -> dict[str, str]:
