@@ -11,7 +11,7 @@ def get_github_token() -> str | None:
 
 def get_github_reviewer_token() -> str | None:
     """Get reviewer token, falls back to main token if not set."""
-    return os.getenv("TOKEN_REVIEWER_GITHUB")
+    return os.getenv("TOKEN_REVIEWER_GITHUB") or os.getenv("TOKEN_GITHUB")
 
 
 def get_reviewer_username() -> str | None:

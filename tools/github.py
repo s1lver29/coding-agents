@@ -11,7 +11,7 @@ def _get_client() -> Github:
     if _gh_client is None:
         token = get_github_token()
         if not token:
-            raise OSError("GITHUB_TOKEN is not set (config/.env)")
+            raise OSError("TOKEN_GITHUB is not set (config/.env)")
         auth = Auth.Token(token)
         _gh_client = Github(auth=auth)
     return _gh_client
