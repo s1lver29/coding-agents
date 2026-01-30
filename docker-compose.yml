@@ -1,0 +1,30 @@
+services:
+  coding-agent:
+    build: .
+    environment:
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - LLM_NAME=${LLM_NAME:-openai/gpt-4o-mini}
+      - URL_LLM=${URL_LLM:-https://api.openai.com/v1}
+      - APIKEY_LLM=${APIKEY_LLM}
+      - GITHUB_REPO_PATH=/tmp/repos
+    volumes:
+      - repos:/tmp/repos
+    command: >
+      python runner.py
+      --repo ${REPO_NAME}
+      --issue ${ISSUE_NUMBER:-}
+
+  reviewer-agent:
+    build: .
+    environment:
+      - GITHUB_TOKEN=${GITHUB_TOKEN_REVIEWER:-${GITHUB_TOKEN}}
+      - LLM_NAME=${LLM_NAME:-openai/gpt-4o-mini}
+      - URL_LLM=${URL_LLM:-https://api.openai.com/v1}
+      - APIKEY_LLM=${APIKEY_LLM}
+    command: >
+      python reviewer_runner.py
+      --repo ${REPO_NAME}
+      --pr ${PR_NUMBER}
+
+volumes:
+  repos:

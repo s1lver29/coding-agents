@@ -207,6 +207,5 @@ def create_code_agent():
             search,
         ],
         add_history_to_context=True,
-        debug_mode=True,
         markdown=True,
     )

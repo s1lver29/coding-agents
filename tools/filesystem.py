@@ -415,3 +415,85 @@ def check_python_syntax(path: str) -> str:
         return f"Syntax OK: '{path}'"
     except SyntaxError as e:
         return f"Syntax error in '{path}' line {e.lineno}: {e.msg}"
+
+
+# =============================================================================
+# Git Repository Management (non-tool functions for runners)
+# =============================================================================
+
+
+def clone_repo(repo_name: str, local_path: Path, base_branch: str = "main") -> None:
+    """
+    Clone repository locally if not already cloned.
+    Uses GITHUB_TOKEN for authentication if available.
+    """
+    token = get_github_token()
+
+    if local_path.exists():
+        print(f"Repo already cloned at {local_path}, fetching latest changes...")
+        subprocess.run(["git", "fetch", "origin"], cwd=local_path, check=True)
+    else:
+        print(f"Cloning repository {repo_name}...")
+        if token:
+            clone_url = f"https://{token}@github.com/{repo_name}.git"
+        else:
+            clone_url = f"https://github.com/{repo_name}.git"
+        subprocess.run(["git", "clone", clone_url, str(local_path)], check=True)
+
+    # Ensure we're on the base branch and up to date
+    subprocess.run(["git", "checkout", base_branch], cwd=local_path, check=True)
+    subprocess.run(["git", "pull", "origin", base_branch], cwd=local_path, check=True)
+
+
+def checkout_branch(branch_name: str, local_path: Path, base_branch: str = "main") -> None:
+    """
+    Checkout working branch for the agent.
+    If remote branch exists, checkout and rebase on base.
+    Otherwise create new branch from base.
+    """
+    # Fetch to have latest state
+    subprocess.run(["git", "fetch", "origin"], cwd=local_path, check=True)
+
+    # Check if remote branch exists
+    result = subprocess.run(
+        ["git", "ls-remote", "--heads", "origin", branch_name],
+        cwd=local_path,
+        capture_output=True,
+        text=True,
+    )
+
+    if result.stdout.strip():
+        # Remote branch exists - checkout and rebase
+        print(f"Remote branch '{branch_name}' exists, checking out...")
+        subprocess.run(
+            ["git", "checkout", "-B", branch_name, f"origin/{branch_name}"],
+            cwd=local_path,
+            check=True,
+        )
+
+        print(f"Rebasing '{branch_name}' onto 'origin/{base_branch}'...")
+        rebase_result = subprocess.run(
+            ["git", "rebase", f"origin/{base_branch}"],
+            cwd=local_path,
+            capture_output=True,
+            text=True,
+        )
+
+        if rebase_result.returncode != 0:
+            print(f"Rebase conflict, recreating branch from '{base_branch}'...")
+            subprocess.run(["git", "rebase", "--abort"], cwd=local_path)
+            subprocess.run(
+                ["git", "checkout", "-B", branch_name, f"origin/{base_branch}"],
+                cwd=local_path,
+                check=True,
+            )
+        else:
+            print("Rebase successful.")
+    else:
+        # No remote branch - create new from base
+        print(f"Creating new branch '{branch_name}' from 'origin/{base_branch}'...")
+        subprocess.run(
+            ["git", "checkout", "-B", branch_name, f"origin/{base_branch}"],
+            cwd=local_path,
+            check=True,
+        )
