@@ -64,6 +64,52 @@ URL_LLM=https://api.openai.com/v1
 APIKEY_LLM=sk-your-api-key
 ```
 
+## Docker
+
+Docker Compose uses a single `agent` service and runs only `runner.py` (full coding + review cycle).
+
+### Quick start (docker-compose)
+
+1) Create a `.env` file next to `docker-compose.yml`:
+
+```env
+TOKEN_GITHUB=ghp_your_token_here
+TOKEN_REVIEWER_GITHUB=ghp_reviewer_token_here  # optional
+REVIEWER_USERNAME_GITHUB=ai-reviewer-bot       # optional
+
+LLM_NAME=openai/gpt-4o-mini
+URL_LLM=https://api.openai.com/v1
+APIKEY_LLM=sk-your-api-key
+
+REPO_NAME=owner/repo
+REPO_PATH_GITHUB=/tmp/clone_repo
+GITHUB_BASE_BRANCH=main
+```
+
+2) Run the full cycle (coding + review):
+
+```bash
+docker compose up --build agent
+```
+
+3) For running `coding_runner.py` or `reviewer_runner.py` separately, use `docker run`.
+
+### One-off run (docker run)
+
+```bash
+docker build -t coding-agents .
+
+docker run --rm \
+	-e TOKEN_GITHUB=ghp_your_token_here \
+	-e LLM_NAME=openai/gpt-4o-mini \
+	-e URL_LLM=https://api.openai.com/v1 \
+	-e APIKEY_LLM=sk-your-api-key \
+	-e REPO_PATH_GITHUB=/tmp/clone_repo \
+	-v coding_agents_repos:/tmp/clone_repo \
+	coding-agents \
+	python runner.py --repo owner/repo
+```
+
 ### 3. GitHub Token Permissions
 
 Required scopes:
