@@ -76,50 +76,19 @@ Required scopes:
 
 Add to your repository's `.github/workflows/ai-review.yml`:
 
-```yaml
-name: AI Code Review
-
-on:
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
-
-jobs:
-  ai-review:
-    runs-on: ubuntu-latest
-    if: github.event.pull_request.draft == false
-
-    permissions:
-      contents: read
-      pull-requests: write
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          repository: YOUR_ORG/coding-agents
-          path: coding-agents
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - run: |
-          cd coding-agents
-          pip install -e .
-
-      - run: |
-          cd coding-agents
-          python reviewer_runner.py --repo ${{ github.repository }} --pr ${{ github.event.pull_request.number }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          APIKEY_LLM: ${{ secrets.APIKEY_LLM }}
-```
-
 ### Secrets Required
 
+You need a GitHub token with the following permissions:
+- Read access to issues
+- Write access to pull requests
+- Write access to workflows
 Add these secrets to your repository:
 - `APIKEY_LLM` - API key for LLM provider
-- `LLM_NAME` (optional) - Model name
-- `URL_LLM` (optional) - LLM API URL
+- `LLM_NAME` - Model name
+- `URL_LLM` - LLM API URL
+- `GITHUB_TOKEN` - Token for general GitHub operations
+- `GITHUB_TOKEN_REVIEWER` - Token for reviewer operations
+- `GITHUB_REVIEWER_USERNAME` - GitHub username of the reviewer
 
 ## Project Structure
 
