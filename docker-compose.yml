@@ -1,30 +1,20 @@
 services:
-  coding-agent:
+  agent:
     build: .
+    image: coding-agents:latest
     environment:
-      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - TOKEN_GITHUB=${TOKEN_GITHUB}
+      - TOKEN_REVIEWER_GITHUB=${TOKEN_REVIEWER_GITHUB}
+      - REVIEWER_USERNAME_GITHUB=${REVIEWER_USERNAME_GITHUB}
       - LLM_NAME=${LLM_NAME:-openai/gpt-4o-mini}
       - URL_LLM=${URL_LLM:-https://api.openai.com/v1}
       - APIKEY_LLM=${APIKEY_LLM}
-      - GITHUB_REPO_PATH=/tmp/repos
     volumes:
-      - repos:/tmp/repos
+      - repos:/tmp/clone_repo
     command: >
-      python runner.py
-      --repo ${REPO_NAME}
-      --issue ${ISSUE_NUMBER:-}
-
-  reviewer-agent:
-    build: .
-    environment:
-      - GITHUB_TOKEN=${GITHUB_TOKEN_REVIEWER:-${GITHUB_TOKEN}}
-      - LLM_NAME=${LLM_NAME:-openai/gpt-4o-mini}
-      - URL_LLM=${URL_LLM:-https://api.openai.com/v1}
-      - APIKEY_LLM=${APIKEY_LLM}
-    command: >
-      python reviewer_runner.py
-      --repo ${REPO_NAME}
-      --pr ${PR_NUMBER}
+      sh -c 'cmd="python runner.py --repo ${REPO_NAME}";
+      if [ -n "${ISSUE_NUMBER}" ]; then cmd="$cmd --issue ${ISSUE_NUMBER}"; fi;
+      exec $cmd'
 
 volumes:
   repos:
