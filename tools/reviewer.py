@@ -14,7 +14,7 @@ def _get_client() -> Github:
     if _gh_client is None:
         token = get_github_reviewer_token()
         if not token:
-            raise OSError("GITHUB_TOKEN_REVIEWER or GITHUB_TOKEN is not set")
+            raise OSError("TOKEN_REVIEWER_GITHUB or TOKEN_GITHUB is not set")
         auth = Auth.Token(token)
         _gh_client = Github(auth=auth)
     return _gh_client

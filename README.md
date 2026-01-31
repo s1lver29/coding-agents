@@ -12,11 +12,14 @@ Autonomous coding agent that:
 - Responds to reviewer feedback
 
 ```bash
-# Run for all open issues
-python runner.py --repo owner/repo
+# Simple mode: coding only
+python coding_runner.py --repo owner/repo --issue 123
 
-# Run for specific issue
+# Full cycle: coding + review loop (until APPROVE or max iterations)
 python runner.py --repo owner/repo --issue 123
+
+# Process all open issues
+python runner.py --repo owner/repo
 ```
 
 ### 2. Reviewer Agent
@@ -51,12 +54,12 @@ Create `.env` file:
 
 ```env
 # GitHub tokens
-GITHUB_TOKEN=ghp_your_token_here
-GITHUB_TOKEN_REVIEWER=ghp_reviewer_token_here  # Optional: separate token for reviewer agent
-GITHUB_REVIEWER_USERNAME=ai-reviewer-bot       # Optional: username to auto-request reviews
+TOKEN_GITHUB=ghp_your_token_here
+TOKEN_REVIEWER_GITHUB=ghp_reviewer_token_here  # Optional: separate token for reviewer
+REVIEWER_USERNAME_GITHUB=ai-reviewer-bot       # Optional: auto-request reviews
 
 # Repository clone path
-GITHUB_REPO_PATH=/tmp/clone_repo
+REPO_PATH_GITHUB=/tmp/clone_repo
 
 # LLM Configuration
 LLM_NAME=openai/gpt-4o-mini
@@ -74,51 +77,16 @@ Required scopes:
 
 ### Reviewer Agent in CI/CD
 
-Add to your repository's `.github/workflows/ai-review.yml`:
+Add to your repository's `.github/workflows/ai-coding-cycle.yml`:
 
-```yaml
-name: AI Code Review
 
-on:
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
-
-jobs:
-  ai-review:
-    runs-on: ubuntu-latest
-    if: github.event.pull_request.draft == false
-
-    permissions:
-      contents: read
-      pull-requests: write
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          repository: YOUR_ORG/coding-agents
-          path: coding-agents
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - run: |
-          cd coding-agents
-          pip install -e .
-
-      - run: |
-          cd coding-agents
-          python reviewer_runner.py --repo ${{ github.repository }} --pr ${{ github.event.pull_request.number }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          APIKEY_LLM: ${{ secrets.APIKEY_LLM }}
-```
 
 ### Secrets Required
 
 Add these secrets to your repository:
+- `TOKEN_GITHUB` - GitHub token with repo access
 - `APIKEY_LLM` - API key for LLM provider
-- `LLM_NAME` (optional) - Model name
+- `LLM_NAME` (optional) - Model name (e.g., `openai/gpt-4o-mini`)
 - `URL_LLM` (optional) - LLM API URL
 
 ## Project Structure
@@ -133,17 +101,19 @@ coding-agents/
 │       ├── agent.py       # Agent definition & instructions
 │       └── llm.py         # LLM configuration
 ├── tools/
-│   ├── filesystem.py      # File operations, git, linting
+│   ├── filesystem.py      # File ops, git, linting, clone_repo, checkout_branch
 │   ├── github.py          # GitHub API for coding agent
 │   ├── reviewer.py        # GitHub API for reviewer agent
 │   └── search.py          # Web search
 ├── .github/workflows/
-│   ├── ai-review.yml      # Standalone workflow
-│   └── ai-review-reusable.yml  # Reusable workflow
-├── runner.py              # Coding agent runner
-├── reviewer_runner.py     # Reviewer agent runner
+│   └── *.yml.example      # Example workflows for other repos
+├── runner.py              # Full cycle: coding + review loop
+├── coding_runner.py       # Coding agent only
+├── reviewer_runner.py     # Reviewer agent only
 ├── config.py              # Configuration & secrets
-├── cli.py                 # CLI argument parsing
+├── cli.py                 # CLI: parse_coding_args, parse_reviewer_args
+├── Dockerfile             # Docker image
+├── docker-compose.yml     # Docker compose
 └── pyproject.toml         # Dependencies
 ```
 
